@@ -1,6 +1,7 @@
 #include "config.h"
-#include "slavedevice.h"
+#include "led.h"
 #include "duco_hash.h"
+#include "slavedevice.h"
 #include <Wire.h>
 
 uint8_t _addr;
@@ -170,6 +171,7 @@ void slave_loop() {
     if(result != 0) {
       DEBUGPRINT_LN(result);
       DEBUGPRINT_LN("[DUCO] Found Share !");
+      ledBlinkBlocking(1);
       currentJob.foundNonce = result;
       stats.sharesFound++;
       LoopState = LOOP_STATE_IDLE;
