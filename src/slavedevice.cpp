@@ -103,7 +103,7 @@ void _clearArray(volatile uint8_t *ary, uint8_t size) {
 static void dumpCurrentMiningJob() {
   #ifdef SERIAL_PRINT
     char strBuf[180];
-    SERIALPRINT_LN("[I2C] Current Mining Job Data");
+    DEBUGPRINT_LN("[I2C] Current Mining Job Data");
 
     // hex buffers need 2*len + 1 bytes
     char prevHex[40 + 1];
@@ -118,7 +118,7 @@ static void dumpCurrentMiningJob() {
       prevHex, expHex, currentJob.difficulty,
       currentJob.foundNonce,
       currentJob.jobTimeTakenMs);
-    SERIALPRINT_LN( strBuf );  
+    DEBUGPRINT_LN( strBuf );  
   #endif
 }
 
@@ -168,8 +168,8 @@ void slave_loop() {
     currentJob.jobTimeTakenMs = millis() - startTime;
 
     if(result != 0) {
-      SERIALPRINT_LN(result);
-      SERIALPRINT_LN("[DUCO] Found Share !");
+      DEBUGPRINT_LN(result);
+      DEBUGPRINT_LN("[DUCO] Found Share !");
       currentJob.foundNonce = result;
       stats.sharesFound++;
       LoopState = LOOP_STATE_IDLE;
@@ -200,20 +200,20 @@ void receiveEvent(int numBytes) {
     // ===== Test Commands (0x01-0x0F) =====
     
     case CMD_PING:
-      SERIALPRINT_LN(F("[I2C] CMD_PING"));
+      DEBUGPRINT_LN(F("[I2C] CMD_PING"));
       responseBuffer[0] = 0xAA;
       responseLength = 1;
       break;
             
     case CMD_GET_VERSION:
-      SERIALPRINT_LN(F("[I2C] CMD_GET_VERSION"));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_VERSION"));
       responseBuffer[0] = VER_MAJOR;
       responseBuffer[1] = VER_MINOR;
       responseLength = 2;
       break;
     
     case CMD_GET_HEAP:    // not implemented yet
-      SERIALPRINT_LN(F("[I2C] CMD_GET_HEAP"));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_HEAP"));
       responseBuffer[0] = 0xFC;
       responseBuffer[1] = 0xFA;
       responseBuffer[2] = 0xFC;
@@ -222,7 +222,7 @@ void receiveEvent(int numBytes) {
       break;
 
     case CMD_GET_UPTIME: {
-      SERIALPRINT_LN(F("[I2C] CMD_GET_UPTIME."));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_UPTIME."));
       uint32_t ms = millis();
       responseBuffer[0] = (uint8_t)(ms & 0xFF);
       responseBuffer[1] = (uint8_t)((ms >> 8) & 0xFF);
@@ -233,7 +233,7 @@ void receiveEvent(int numBytes) {
     }
 
     case CMD_ECHO: {
-      SERIALPRINT_LN(F("[I2C] CMD_ECHO"));
+      DEBUGPRINT_LN(F("[I2C] CMD_ECHO"));
       for (uint8_t i = 0; i < 8; i++) {
         responseBuffer[i] = (Wire.available()) ? Wire.read() : 0x00;
       }
@@ -246,7 +246,7 @@ void receiveEvent(int numBytes) {
     // [0x10 0x90 0x02 0x03 0x02 0x03 0x02 0x03 0x02 0x06 0x02 0x03 0x02 0x03 0x62 0x77 r:4]
     // Returns: AA 0E FA 15
     case CMD_TEST_SEND: {
-      SERIALPRINT_LN(F("[I2C] CMD_TEST_SEND"));
+      DEBUGPRINT_LN(F("[I2C] CMD_TEST_SEND"));
       responseLength = 4;
 
       uint8_t buf[128];
@@ -256,9 +256,9 @@ void receiveEvent(int numBytes) {
         buf[c] = Wire.read();
         checksum += buf[c];
         c++;
-        SERIALPRINT(".");
+        DEBUGPRINT(".");
       }
-      SERIALPRINT(F("Total bytes received: ")); SERIALPRINT_LN(c);
+      DEBUGPRINT(F("Total bytes received: ")); DEBUGPRINT_LN(c);
 
       responseBuffer[0] = 0xAA;
       responseBuffer[1] = c;
@@ -270,10 +270,10 @@ void receiveEvent(int numBytes) {
     // ===== Data Transfer Commands =====
 
     case CMD_BEGIN_DATA:
-      SERIALPRINT_LN(F("[I2C] CMD_BEGIN_DATA"));
+      DEBUGPRINT_LN(F("[I2C] CMD_BEGIN_DATA"));
       responseLength = 1;
       if(LoopState == LOOP_STATE_DO_WORK) {
-        SERIALPRINT_LN(F("  Error - doing work"));
+        DEBUGPRINT_LN(F("  Error - doing work"));
         responseBuffer[0] = ERROR_NOT_READY;
       }
       else {
@@ -286,12 +286,12 @@ void receiveEvent(int numBytes) {
 
     // Just receive data from the master and put it in our Rx buffer
     case CMD_SEND_DATA: {
-      SERIALPRINT_LN(F("[I2C] CMD_SEND_DATA"));
+      DEBUGPRINT_LN(F("[I2C] CMD_SEND_DATA"));
       responseLength = 3;     // Always start with the expected response size
 
       if(numBytes < 2) {
         responseBuffer[0] = ERROR_FRAME_TOO_SMALL;
-        SERIALPRINT_LN(F("    - Error packet too small"));
+        DEBUGPRINT_LN(F("    - Error packet too small"));
         break;
       }
 
@@ -299,11 +299,11 @@ void receiveEvent(int numBytes) {
       uint8_t data = Wire.read();
       while (Wire.available()) Wire.read(); // clear anything else
 
-      SERIALPRINT("    Got seq: ");
-      SERIALPRINT(seq);
-      SERIALPRINT(" Data: ");
-      SERIALPRINT_HEX(data);
-      SERIALPRINT_LN();
+      DEBUGPRINT("    Got seq: ");
+      DEBUGPRINT(seq);
+      DEBUGPRINT(" Data: ");
+      DEBUGPRINT_HEX(data);
+      DEBUGPRINT_LN();
 
       if(seq != rxBytesIn) {
         responseBuffer[0] = ERROR_OUT_OF_SEQ;
@@ -320,7 +320,7 @@ void receiveEvent(int numBytes) {
     }
 
     case CMD_END_DATA: {
-      SERIALPRINT_LN(F("[I2C] CMD_END_DATA"));
+      DEBUGPRINT_LN(F("[I2C] CMD_END_DATA"));
       responseLength = 1;     // Always start with the expected response size
       if(numBytes < 1 || !Wire.available()) {
         responseBuffer[0] = ERROR_NO_CRC;
@@ -329,11 +329,11 @@ void receiveEvent(int numBytes) {
 
       currentJob.crc8 = crc8_maxim((const uint8_t*)rxBuf, rxBytesIn);
       uint8_t sentCRC = Wire.read();
-      SERIALPRINT("    Got crc8: 0x");
-      SERIALPRINT_HEX(sentCRC);
-      SERIALPRINT(" exp: ");
-      SERIALPRINT_HEX(currentJob.crc8);
-      SERIALPRINT_LN();
+      DEBUGPRINT("    Got crc8: 0x");
+      DEBUGPRINT_HEX(sentCRC);
+      DEBUGPRINT(" exp: ");
+      DEBUGPRINT_HEX(currentJob.crc8);
+      DEBUGPRINT_LN();
 
       // if(0 == currentJob.crc8) {
       //   responseBuffer[0] = ERROR_NOT_READY;
@@ -341,36 +341,36 @@ void receiveEvent(int numBytes) {
       // }
 
       if(sentCRC != currentJob.crc8) {
-        SERIALPRINT_LN("CRC WRONG");
+        DEBUGPRINT_LN("CRC WRONG");
         responseBuffer[0] = ERROR_CRC_MISMATCH;
         break;
       }
 
-      // SERIALPRINT_LN("CRC OK");
+      // DEBUGPRINT_LN("CRC OK");
       LoopState = LOOP_STATE_PROCESS_PKT_IN;
       responseBuffer[0] = 0xAA;
       }
       break;
 
     case CMD_TEST_DUMP_DATA:
-      SERIALPRINT_LN(F("[I2C] CMD_TEST_DUMP_DATA"));
+      DEBUGPRINT_LN(F("[I2C] CMD_TEST_DUMP_DATA"));
       responseLength = 0;
       for(uint8_t i = 0; i < rxBytesIn; i++) {
         char hex[4];
         sprintf(hex, "%.2X ", rxBuf[i]);
-        SERIALPRINT( hex );
+        DEBUGPRINT( hex );
       }
-      SERIALPRINT_LN(" |END");
+      DEBUGPRINT_LN(" |END");
       break;
     
     case CMD_GET_IS_IDLE:
-      SERIALPRINT_LN(F("[I2C] CMD_GET_IS_IDLE"));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_IS_IDLE"));
       responseLength = 1;
       responseBuffer[0] = (LoopState == LOOP_STATE_IDLE) ? 0xAA : 0xEE;
       break;
 
     case CMD_GET_JOB_STATUS:
-      SERIALPRINT_LN(F("[I2C] CMD_GET_JOB_STATUS"));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_JOB_STATUS"));
       responseLength = 4;
       responseBuffer[0] = (LoopState != LOOP_STATE_DO_WORK && currentJob.foundNonce != 0) ? 0xAA : 0xDD;
       responseBuffer[1] = (uint8_t)(currentJob.foundNonce & 0xFF);
@@ -379,7 +379,7 @@ void receiveEvent(int numBytes) {
       break;
       
     case CMD_GET_JOB_DATA:
-      SERIALPRINT_LN(F("[I2C] CMD_GET_JOB_DATA"));
+      DEBUGPRINT_LN(F("[I2C] CMD_GET_JOB_DATA"));
       responseLength = 18;
       // Return job data for verification (18 bytes total)
       // First 8 bytes of prevHash
@@ -409,14 +409,14 @@ void requestEvent() {
   if (responseLength > 0) {
     Wire.write((uint8_t*)responseBuffer, responseLength);
 
-    SERIALPRINT(F("[I2C] Sending Response Data: "));
+    DEBUGPRINT(F("[I2C] Sending Response Data: "));
     #if defined(SERIAL_PRINT)
       for(uint8_t i = 0; i < responseLength; i++) {
           char hex[4];
           sprintf(hex, "%.2X ", responseBuffer[i]);
-          SERIALPRINT( hex );
+          DEBUGPRINT( hex );
       }
-    SERIALPRINT_LN();
+    DEBUGPRINT_LN();
     #endif
   }
 }

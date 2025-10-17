@@ -26,13 +26,10 @@ void setup() {
   // Optional serial for debug
   SERIALBEGIN(115200);
   delay(10);
-  SERIALPRINT(F("Nano I2C Slave up: i2c: 0x"));
-  char hex[3];
-  sprintf(hex, "%.02x", I2C_ADDR);
-  SERIALPRINT_LN(hex);
+  SERIALPRINT_LN(F("Nano I2C Slave starting..."));
 
   // Startup indication - blocking is OK here
-  ledBlinkBlocking(3);
+  ledBlinkBlocking(2);
 
   uint8_t addr;
   if(I2C_ADDR == 0) {
@@ -53,10 +50,23 @@ void setup() {
     }
     addr = I2C_ADDR;
   }
+  
+  SERIALPRINT(F("i2c address: 0x"));
+  SERIALPRINT_HEX(addr);
+  SERIALPRINT_LN();
   slave_begin(I2C_ADDR);
 }
 
+RunEvery ErrorLed(1500);
+
 void loop() {
+  if(startUpError) {
+    if(ErrorLed.due()) {
+        ledBlinkBlocking(4);
+    }
+    return;
+  }
+  
   slave_loop();
 
   // Small delay to prevent tight looping

@@ -138,7 +138,7 @@ void setup() {
 
   uint16_t n = test_origduco_findnonce();
   if(n != testVectors[0].expected_nonce) {
-    SERIALPRINT_LN(F("Failed to find expected nonce"))
+    DEBUGPRINT_LN(F("Failed to find expected nonce"))
   }
 }
 
@@ -146,21 +146,21 @@ void loop() {
   slave_loop();
 
   if(TestLoop.due()) {
-    SERIALPRINT_LN(F("********* START TESTS *********"));
+    DEBUGPRINT_LN(F("********* START TESTS *********"));
     if(test_origduco_findnonce() != testVectors[0].expected_nonce) {
-      SERIALPRINT_LN(F("Failed to find expected nonce"));
+      DEBUGPRINT_LN(F("Failed to find expected nonce"));
     }
     #if defined(SHA1_DUCO)
       test_origduco();
     #endif
     //test_fastduco();
-    SERIALPRINT_LN(F("*********  END TESTS  *********\n"));
+    DEBUGPRINT_LN(F("*********  END TESTS  *********\n"));
   }
   delay(2);
 }
 
 void test_origduco() {
-  SERIALPRINT_LN(F("Starting DUCO ORIG ..."));
+  DEBUGPRINT_LN(F("Starting DUCO ORIG ..."));
 
   unsigned int iter = TEST_ITERATIONS;
   static duco_hash_state_t hash;
@@ -173,11 +173,11 @@ void test_origduco() {
     ultoa(testVectors[0].expected_nonce, nonceStr, 10);
     uint8_t const * hash_bytes = duco_hash_try_nonce(&hash, nonceStr);
     if (memcmp(hash_bytes, testVectors[0].newBlockHash20, 20) != 0) {
-      SERIALPRINT_LN("Hash with expected nonce failed, which is weird !");
+      DEBUGPRINT_LN("Hash with expected nonce failed, which is weird !");
 
       char out[41];
       bytes_to_hex(hash_bytes, 20, out);
-      SERIALPRINT_LN(out);
+      DEBUGPRINT_LN(out);
     }
   }
   unsigned long stop = millis();
@@ -186,11 +186,11 @@ void test_origduco() {
   char strBuf[128];
   double hps = ((double)iter / ((double)t/1000));
   sprintf(strBuf, "Iterations: = %u  Time: %lu ms. Hashes: %.3f /s", iter, t, hps);
-  SERIALPRINT_LN( strBuf );
+  DEBUGPRINT_LN( strBuf );
 }
 
 uint16_t test_origduco_findnonce() {
-  SERIALPRINT("Starting DUCO find nonce... ");
+  DEBUGPRINT("Starting DUCO find nonce... ");
 
   unsigned long start = millis();
 
@@ -203,18 +203,18 @@ uint16_t test_origduco_findnonce() {
     uint8_t const * hash_bytes = duco_hash_try_nonce(&hash, nonceStr);
 
     if (memcmp(hash_bytes, testVectors[0].newBlockHash20, 20) == 0) {
-      SERIALPRINT("Found nonce: ");
-      SERIALPRINT_LN(nonce);
+      DEBUGPRINT("Found nonce: ");
+      DEBUGPRINT_LN(nonce);
       return nonce;
     }
   }
 
-  SERIALPRINT_LN("Failed to find nonce: ");
+  DEBUGPRINT_LN("Failed to find nonce: ");
   return 0;
 }
 
 void test_fastduco() {
-  SERIALPRINT_LN("Starting DUCO FAST");
+  DEBUGPRINT_LN("Starting DUCO FAST");
 
   // int iter = TEST_ITERATIONS;
 
@@ -228,18 +228,18 @@ void test_fastduco() {
   //   sha1_t85((const uint8_t*)m.c_str(), m.length() , hash_bytes);
     
   //   if (memcmp(hash_bytes, testVectors[0].newBlockHash20, 20) != 0) {
-  //     SERIALPRINT_LN("Hash with expected nonce failed, which is weird !");
-  //     SERIALPRINT_LN(" -  last+nonce: " + m);
+  //     DEBUGPRINT_LN("Hash with expected nonce failed, which is weird !");
+  //     DEBUGPRINT_LN(" -  last+nonce: " + m);
   //     char out[41];
   //     bytes_to_hex(hash_bytes, 20, out);
-  //     SERIALPRINT_LN(out);
+  //     DEBUGPRINT_LN(out);
   //     break;
   //   }
   // }
   // unsigned long stop = millis();
   // unsigned long t = stop - start;
 
-  // SERIALPRINT_LN(String("Iterations: ") + String(iter) + " Time: " + String(t) + "ms. Hashes: " +String(iter / (t/1000)) + "/s" );
+  // DEBUGPRINT_LN(String("Iterations: ") + String(iter) + " Time: " + String(t) + "ms. Hashes: " +String(iter / (t/1000)) + "/s" );
 }
 
 #endif
