@@ -17,7 +17,10 @@
 #include "duco_hash.h"
 #include "slavedevice.h"
 
+#include <EEPROM.h>
 #include <Arduino.h>
+
+bool startUpError = false;
 
 void setup() {
   // Optional serial for debug
@@ -31,6 +34,25 @@ void setup() {
   // Startup indication - blocking is OK here
   ledBlinkBlocking(3);
 
+  uint8_t addr;
+  if(I2C_ADDR == 0) {
+    // Get the address from EEPROM
+    addr = EEPROM.read(0);
+    if(addr < 8) {
+      startUpError = true;
+      return;
+    }
+    else {
+      addr = I2C_ADDR;
+    }
+  }
+  else {
+    // config has an addres set, so probably want to save in EEPROM unless it's the same
+    if(I2C_ADDR != EEPROM.read(0)) {
+      EEPROM.write(0, I2C_ADDR);
+    }
+    addr = I2C_ADDR;
+  }
   slave_begin(I2C_ADDR);
 }
 
